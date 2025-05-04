@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CryptoZombie Details</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="web3.min.js"></script>
+  <script src="cryptozombies_abi.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="navbar">
+    <a href="index.html">My Zombies</a>
+    <span id="user-address"></span>
+  </div>
+  
+  <h1>Zombie Details</h1>
+  <div id="txStatus"></div>
+  <div id="zombie-details"></div>
+  <div id="battle-history"></div>
+  
+  <script>
+    var cryptoZombies;
+    var userAccount;
+    var zombieId;
+    
+    function startApp() {
+      var cryptoZombiesAddress = "YOUR_CONTRACT_ADDRESS";
+      cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+      
+      // Get zombie ID from URL parameter
+      const params = new URLSearchParams(window.location.search);
+      zombieId = params.get('id');
+      
+      if (!zombieId) {
+        $("#zombie-details").html("<p>Invalid zombie ID</p>");
+        return;
+      }
+      
+      // Display zombie details
+      loadZombieDetails(zombieId);
+      
+      // Display user address
+      $("#user-address").text("Connected: " + userAccount.substr(0, 6) + "...");
+    }
+    
+    function loadZombieDetails(id) {
+      getZombieDetails(id).then(function(zombie) {
+        displayZombieDetails(id, zombie);
+        
+        // Get zombie owner
+        return zombieToOwner(id);
+      }).then(function(owner) {
+        $("#zombie-owner").text(owner);
+        $("#zombie-owner").attr("href", "user.html?address=" + owner);
+        
+        // Check if user is the owner to enable actions
+        const isOwner = (owner.toLowerCase() === userAccount.toLowerCase());
+        $(".owner-only").toggle(isOwner);
+        displayZombieActions(id, zombie, isOwner);
+      }).catch(function(error) {
+        console.error(error);
+        $("#zombie-details").html("<p>Error loading zombie details</p>");
+      });
+    }
+    
+    function displayZombieDetails(id, zombie) {
+      $("#zombie-details").html(`
+        <div class="zombie-card">
+          <div class="zombie-image">
+            <!-- Generate zombie image based on DNA -->
+            <div style="background-color: #${zombie.dna.toString().substr(0, 6)};">Zombie #${id}</div>
+          </div>
+          <div class="zombie-info">
+            <h2>${zombie.name}</h2>
+            <p>DNA: ${zombie.dna}</p>
+            <p>Level: ${zombie.level}</p>
+            <p>Wins: ${zombie.winCount}</p>
+            <p>Losses: ${zombie.lossCount}</p>
+            <p>Owner: <a id="zombie-owner" href="#">Loading...</a></p>
+          </div>
+          <div class="zombie-actions owner-only">
+            <button onclick="promptRename(${id})">Rename</button>
+            ${zombie.level >= 20 ? `<button onclick="promptChangeDna(${id})">Change DNA</button>` : ''}
+            <button onclick="levelUp(${id})">Level Up (0.001 ETH)</button>
+            <button onclick="showTransferModal(${id})">Transfer</button>
+          </div>
+        </div>
+      `);
+    }
+    
+    function getZombieDetails(id) {
+      return cryptoZombies.methods.zombies(id).call();
+    }
+    
+    function zombieToOwner(id) {
+      return cryptoZombies.methods.zombieToOwner(id).call();
+    }
+    
+    // After loading zombie details
+    function displayZombieActions(zombieId, zombie, isOwner) {
+      // Only show action buttons if the user is the owner
+      if (!isOwner) return;
+      
+      // Create action buttons container
+      const actionsDiv = $("<div class='zombie-actions'></div>");
+      
+      // Add rename button (level 2+)
+      if (zombie.level >= 2) {
+        const renameBtn = $("<button>Rename</button>");
+        renameBtn.click(function() {
+          const newName = prompt("Enter new name for your zombie:");
+          if (newName) {
+            changeName(zombieId, newName);
+          }
+        });
+        actionsDiv.append(renameBtn);
+      }
+      
+      // Add change DNA button (level 20+)
+      if (zombie.level >= 20) {
+        const dnaBtn = $("<button>Change DNA</button>");
+        dnaBtn.click(function() {
+          const newDna = prompt("Enter new DNA for your zombie:");
+          if (newDna) {
+            changeDna(zombieId, newDna);
+          }
+        });
+        actionsDiv.append(dnaBtn);
+      }
+      
+      // Add level up button
+      const levelBtn = $("<button>Level Up (0.001 ETH)</button>");
+      levelBtn.click(function() {
+        if (confirm("Are you sure you want to level up this zombie for 0.001 ETH?")) {
+          levelUp(zombieId);
+        }
+      });
+      actionsDiv.append(levelBtn);
+      
+      // Add transfer button
+      const transferBtn = $("<button>Transfer</button>");
+      transferBtn.click(function() {
+        const toAddress = prompt("Enter the recipient's Ethereum address:");
+        if (toAddress) {
+          if (!web3.utils.isAddress(toAddress)) {
+            alert("Please enter a valid Ethereum address");
+            return;
+          }
+          transferZombie(zombieId, toAddress);
+        }
+      });
+      actionsDiv.append(transferBtn);
+      
+      // Add feed button
+      const feedBtn = $("<button>Feed on Kitty</button>");
+      feedBtn.click(function() {
+        const kittyId = prompt("Enter the Kitty ID to feed on:");
+        if (kittyId) {
+          feedOnKitty(zombieId, kittyId);
+        }
+      });
+      actionsDiv.append(feedBtn);
+      
+      // Add attack button
+      const attackBtn = $("<button>Attack</button>");
+      attackBtn.click(function() {
+        const targetId = prompt("Enter the target Zombie ID to attack:");
+        if (targetId) {
+          attack(zombieId, targetId);
+        }
+      });
+      actionsDiv.append(attackBtn);
+      
+      // Append all buttons to the page
+      $("#zombie-details").append(actionsDiv);
+    }
+
+    
+    window.addEventListener('load', function() {
+      if (typeof window.ethereum !== 'undefined') {
+        window.web3 = new Web3(ethereum);
+        ethereum.request({ method: 'eth_requestAccounts' }).then(function (accounts) {
+          userAccount = accounts[0];
+          console.log('Connected account:', userAccount);
+          startApp();
+        }).catch(function (error) {
+          console.error(error);
+        });
+      } else {
+        $("#txStatus").text("Please install MetaMask to use this DApp");
+      }
+    });
+  </script>
+</body>
+</html>
