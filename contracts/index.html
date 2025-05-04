@@ -8,6 +8,7 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="web3.min.js"></script>
   <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -44,9 +45,9 @@
     function startApp() {
       var cryptoZombiesAddress = "YOUR_CONTRACT_ADDRESS";
       cryptoZombies = new web3js.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
-
+      checkForNewUser();
+      // Update the user account and display the zombies
       var accountInterval = setInterval(function () {
-
         if (web3.eth.accounts[0] !== userAccount) {
           userAccount = web3.eth.accounts[0];
 
@@ -55,6 +56,7 @@
         }
       }, 100);
 
+      // Listen for Transfer events and update the displayed zombies
       cryptoZombies.events.Transfer({ filter: { _to: userAccount } })
         .on("data", function (event) {
           let data = event.returnValues;
@@ -65,9 +67,9 @@
     function displayZombies(ids) {
       $("#zombies").empty();
       for (id of ids) {
-
         getZombieDetails(id)
           .then(function (zombie) {
+            let zombieId = id;
             $("#zombies").append(`<div class="zombie">
               <ul>
                 <li>Name: ${zombie.name}</li>
@@ -77,9 +79,128 @@
                 <li>Losses: ${zombie.lossCount}</li>
                 <li>Ready Time: ${zombie.readyTime}</li>
               </ul>
+               <div class="zombie-actions">
+                <button class="feed-btn" data-id="${zombieId}">Feed Me</button>
+                <button class="attack-btn" data-id="${zombieId}">Attack</button>
+                <button class="transfer-btn" data-id="${zombieId}">Transfer</button>
+                <button class="approve-btn" data-id="${zombieId}">Approve</button>
+                <button class="level-btn" data-id="${zombieId}">Level Up (0.001 ETH)</button>
+                <button class="rename-btn" data-id="${zombieId}">Rename</button>
+                ${zombie.level >= 20 ? `<button class="dna-btn" data-id="${zombieId}">Change DNA</button>` : ''}
+              </div>
             </div>`);
           });
       }
+      // Add event listeners for the buttons
+      attachZombieEventListeners();
+    }
+
+    function attachZombieEventListeners() {
+      // Transfer button click event
+      $(".transfer-btn").click(function() {
+        const zombieId = $(this).data("id");
+        const toAddress = prompt("Enter the recipient's Ethereum address:");
+        if (toAddress) {
+          if (!web3.utils.isAddress(toAddress)) {
+            alert("Invalid Ethereum address. Please try again.");
+            return;
+          }
+          transferZombie(zombieId, toAddress);
+        }
+      });
+      
+      // Approve button click event
+      $(".approve-btn").click(function() {
+        const zombieId = $(this).data("id");
+        const approvedAddress = prompt("Enter the address to approve for transfer:");
+        if (approvedAddress) {
+          if (!web3.utils.isAddress(approvedAddress)) {
+            alert("Invalid Ethereum address. Please try again.");
+            return;
+          }
+          approveTransfer(zombieId, approvedAddress);
+        }
+      });
+      
+      // Rename button click event
+      $(".rename-btn").click(function() {
+        const zombieId = $(this).data("id");
+        const newName = prompt("Enter new name for your zombie:");
+        if (newName) {
+          changeName(zombieId, newName);
+        }
+      });
+
+      // Change DNA button click event
+      $(".dna-btn").click(function() {
+        const zombieId = $(this).data("id");
+        const newDna = prompt("Enter new DNA for your zombie:");
+        if (newDna) {
+          changeDna(zombieId, newDna);
+        }
+      });
+
+      // Level Up button click event
+      $(".level-btn").click(function() {
+        const zombieId = $(this).data("id");
+        levelUp(zombieId);
+      });
+
+      // Feed button click event
+      $(".feed-btn").click(function() {
+        const zombieId = $(this).data("id");
+        const kittyId = prompt("Enter the Kitty ID to feed on:");
+        if (kittyId) {
+          feedOnKitty(zombieId, kittyId);
+        }
+      });
+
+      // Attack button click event
+      $(".attack-btn").click(function() {
+        const zombieId = $(this).data("id");
+
+        // first check if the zombie is ready to attack 
+        getZombieDetails(zombieId).then(function(zombie) {
+          const readyTime = zombie.readyTime;
+          const now = Math.floor(Date.now() / 1000);
+          if (now < readyTime) {
+            const waitTime = readyTime - now;
+            const minutes = Math.floor(waitTime / 60);
+            const seconds = waitTime % 60;
+            alert(`Zombie is not ready to attack! Please wait ${minutes} minutes and ${seconds} seconds.`);
+            return;
+          }
+        });
+
+        // Prompt for the target zombie ID
+        const targetZombieId = prompt("Enter the target Zombie ID to attack:");
+        if (targetZombieId) {
+          attack(zombieId, targetZombieId);
+        }
+      });
+    }
+
+    function checkForNewUser() {
+      getZombiesByOwner(userAccount).then(function (zombies) {
+        if (zombies.length === 0) {
+          $("#zombies").html(`
+            <div class="welcome-message">
+              <h2>Welcome to CryptoZombies!</h2>
+              <p>You don't have any zombies yet. Create your first zombie to start your army!</p>
+              <input type="text" id="zombie-name" placeholder="Enter zombie name">
+              <button id="create-zombie">Create Zombie</button>
+              </div>`);
+
+          $("#create-zombie").click(function () {
+            const name = $("#zombie-name").val();
+            if (name) {
+              createRandomZombie(name);
+            } else {
+              alert("Please enter a name for your zombie.");
+            }
+          });
+        } 
+      });
     }
 
     function createRandomZombie(name) {
@@ -206,16 +327,30 @@
         });
     }
     
-    window.addEventListener('load', function () {
+    window.addEventListener('load', async function () {
+      // Modern dapp browsers...
+      if (window.ethereum) {
+        window.web3 = new Web3(ethereum);
+        try {
+          // Request account access if needed
+          await ethereum.request({ method: 'eth_requestAccounts' });
+          web3js = new Web3(window.ethereum);
 
-      if (typeof web3 !== 'undefined') {
-
-        web3js = new Web3(web3.currentProvider);
+          // Handle account changes
+          window.ethereum.on('accountsChanged', function (accounts) {
+            userAccount = accounts[0];
+            getZombiesByOwner(userAccount).then(displayZombies);
+          });
+        } catch (error) {
+          console.error("User denied account access");
+        }
+      } else if (window.web3) {
+        // Use Mist/MetaMask's provider
+        window.web3 = new Web3(web3.currentProvider);
       } else {
-
-
+        // Handle the case where the user doesn't have MetaMask installed
+        console.log('Non-Ethereum browser detected. You should consider trying MetaMask!');
       }
-
 
       startApp()
 
