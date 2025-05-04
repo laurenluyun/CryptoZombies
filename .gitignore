@@ -48,3 +48,4 @@ coverage/
 
 # truffle
 truffle-config.js
+generate-abi.js
