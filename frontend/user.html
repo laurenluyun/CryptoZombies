@@ -33,7 +33,7 @@
     
     function startApp() {
       var cryptoZombiesAddress = "0xE619B59bFceF3f7aa610d4B7b3A77f3d7ecaE190";
-      cryptoZombies = new web3.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
+      cryptoZombies = new web3js.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
       
       // Get owner address from URL parameter
       const params = new URLSearchParams(window.location.search);
@@ -191,18 +191,20 @@
       $(this).closest(".modal").hide();
     });
     
-    window.addEventListener('load', function() {
+    window.addEventListener('load', async function() {
       if (typeof window.ethereum !== 'undefined') {
-        window.web3 = new Web3(ethereum);
-        ethereum.request({ method: 'eth_requestAccounts' }).then(function (accounts) {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           userAccount = accounts[0];
+          web3js = new Web3(window.ethereum);
           console.log('Connected account:', userAccount);
           startApp();
-        }).catch(function (error) {
+        } catch(error) {
           console.error(error);
-        });
+          $("#status").text("Please connect to MetaMask to use the admin panel");
+        }
       } else {
-        $("#txStatus").text("Please install MetaMask to use this DApp");
+        $("#status").text("Please install MetaMask to use the admin panel");
       }
     });
   </script>
