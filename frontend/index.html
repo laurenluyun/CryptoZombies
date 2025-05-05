@@ -8,7 +8,7 @@
     src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script language="javascript" type="text/javascript" src="web3.min.js"></script>
   <script language="javascript" type="text/javascript" src="cryptozombies_abi.js"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
@@ -43,7 +43,7 @@
      * startApp();
      */
     function startApp() {
-      var cryptoZombiesAddress = "YOUR_CONTRACT_ADDRESS";
+      var cryptoZombiesAddress ="0xE619B59bFceF3f7aa610d4B7b3A77f3d7ecaE190";
       cryptoZombies = new web3js.eth.Contract(cryptoZombiesABI, cryptoZombiesAddress);
       checkForNewUser();
       // Update the user account and display the zombies
