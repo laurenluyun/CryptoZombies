@@ -192,31 +192,65 @@
 
     function checkForNewUser() {
       console.log("Checking if user has zombies...");
-      getZombiesByOwner(userAccount).then(function (zombies) {
-        console.log("User has zombies:", zombies);
-        if (zombies.length === 0) {
-          $("#zombies").html(`
-            <div class="welcome-message">
-              <h2>Welcome to CryptoZombies!</h2>
-              <p>You don't have any zombies yet. Create your first zombie to start your army!</p>
-              <input type="text" id="zombie-name" placeholder="Enter zombie name">
-              <button id="create-zombie">Create Zombie</button>
+
+      // First check if the contract is deployed at the specified address
+      web3js.eth.getCode(cryptoZombies.options.address)
+        .then(function(bytecode) {
+          if (bytecode === "0x" || bytecode === "0x0") {
+            console.error("No contract found at the specified address!");
+            $("#zombies").html("<p>No contract found at the specified address. Please make cure you're connected to the correct network.</p>");
+            return;
+          }
+
+          // If contract exists, proceed with getZombiesByOwner
+          return getZombiesByOwner(userAccount);
+        })
+        .then(function(zombies) {
+          // This will execute if the getZombiesByOwner call is successful
+          console.log("User has zombies:", zombies);
+          if (!zombies || zombies.length === 0) {
+            $("#zombies").html(`
+              <div class="welcome-message">
+                <h2>Welcome to CryptoZombies!</h2>
+                <p>You don't have any zombies yet. Create your first zombie to start your army!</p>
+                <input type="text" id="zombie-name" placeholder="Enter zombie name">
+                <button id="create-zombie">Create Zombie</button>
               </div>`);
 
-          $("#create-zombie").click(function () {
-            const name = $("#zombie-name").val();
-            if (name) {
-              createRandomZombie(name);
-            } 
-          });
-        } else {
-              displayZombies(zombies);
+            $("#create-zombie").click(function () {
+              const name = $("#zombie-name").val();
+              if (name) {
+                createRandomZombie(name);
+              } 
+            });
+          } else {
+            displayZombies(zombies);
           }
-      })
-      .catch(function (error) {
-        console.error("Error fetching zombies:", error);
-        $("#zombies").html("<p>Error connecting to the blockchain. Please make sure your wallet is connected.</p>");
-      });
+        })
+        .catch(function (error) {
+           // Check if this is an "empty array" error from Web3.js
+          if (error && error.message && error.message.includes("Returned values aren't valid")) {
+            console.log("Empty array detected - showing welcome message for new user");
+            // This is likely a new user with no zombies - show welcome message
+            $("#zombies").html(`
+              <div class="welcome-message">
+                <h2>Welcome to CryptoZombies!</h2>
+                <p>You don't have any zombies yet. Create your first zombie to start your army!</p>
+                <input type="text" id="zombie-name" placeholder="Enter zombie name">
+                <button id="create-zombie">Create Zombie</button>
+              </div>`);
+
+            $("#create-zombie").click(function() {
+              const name = $("#zombie-name").val();
+              if (name) {
+                createRandomZombie(name);
+              }
+            });
+          } else {
+            console.error("Error connecting to contract", error);
+            $("#zombies").html("<p>Error connecting to the blockchain. Please make sure your wallet is connected.</p>");
+          }
+        });
     }
 
     function createRandomZombie(name) {
