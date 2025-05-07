@@ -50,9 +50,17 @@ coverage/
 truffle-config.js
 generate-abi.js
 
-
+# package files
 package.json
 package-lock.json
 
+# generated files
 generate-key.js
 generate-mnemonic.js
+
+cryptozombies_abi.js
+web3.min.js
+
+# migration files
+migrations/*.js
+
