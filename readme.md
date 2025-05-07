@@ -57,10 +57,6 @@ CryptoZombies/
 ## Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/cryptozombies.git
-   cd cryptozombies
-   ```
 
 2. Install dependencies:
    ```bash
@@ -116,7 +112,7 @@ CryptoZombies/
 
 To deploy to a testnet like Rinkeby or Loom testnet:
 
-1. Configure your private key or mnemonic in `.env` file (never commit this file):
+1. Configure your private key or mnemonic in `.env` file:
    ```
    PRIVATE_KEY=your_private_key_without_0x_prefix
    MNEMONIC=your twelve word mnemonic phrase here
