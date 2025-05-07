@@ -161,5 +161,4 @@ truffle test
 
 ## Acknowledgments
 
-- Based on the [CryptoZombies.io](https://cryptozombies.io/) tutorial from Loom Network
-- Uses the ERC-721 standard for non-fungible tokens
+- Based on the [CryptoZombies.io](https://cryptozombies.io/) tutorial
