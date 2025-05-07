@@ -49,3 +49,10 @@ coverage/
 # truffle
 truffle-config.js
 generate-abi.js
+
+
+package.json
+package-lock.json
+
+generate-key.js
+generate-mnemonic.js
