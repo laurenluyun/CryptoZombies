@@ -61,6 +61,3 @@ generate-mnemonic.js
 frontend/cryptozombies_abi.js
 frontend/web3.min.js
 
-# migration files
-migrations/*.js
-
