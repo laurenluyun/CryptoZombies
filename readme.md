@@ -33,6 +33,7 @@ CryptoZombies/
 │   ├── zombiehelper.sol    # Helper functions for leveling up
 │   └── zombieownership.sol # NFT ownership implementation
 ├── migrations/             # Truffle migration scripts
+│   └── 2_crypto_zombies.sol# Migration scripts for CryptoZombies.sol
 ├── test/                   # Test files
 │   ├── CryptoZombies.js    # Main test file
 │   └── helpers/            # Test helpers

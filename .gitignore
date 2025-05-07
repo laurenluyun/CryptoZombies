@@ -58,8 +58,8 @@ package-lock.json
 generate-key.js
 generate-mnemonic.js
 
-cryptozombies_abi.js
-web3.min.js
+frontend/cryptozombies_abi.js
+frontend/web3.min.js
 
 # migration files
 migrations/*.js
